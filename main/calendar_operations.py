@@ -7,7 +7,7 @@ import pytz
 from django.conf import settings
 from firebase_admin import db
 firebase_admin = settings.MYDB
-
+#calendar here is a 1D array. To get a day index we find number of days between first day and current day
 def add_task(datetime_object,weight,batch_code):
     calendar_start_date = db.reference("/{batch_code}/calendar_start_date/".format(batch_code = batch_code)).get()
     calendar_start_date_datetime_object = datetime(year= calendar_start_date['year'], month = calendar_start_date['month'],day= calendar_start_date['day'])

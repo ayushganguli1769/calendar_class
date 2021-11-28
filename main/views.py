@@ -38,6 +38,8 @@ def check_is_student(user):
 def generate_random_string(length):
     arr = [chr(random.randrange(65,91) ) for _ in range(length)]
     return "".join(arr)
+
+
 def register(request):
     if 'register' in request.POST:
         #try:
@@ -257,6 +259,11 @@ def join_class_student(request,class_code):
         'message': "Sucessfully added to class {curr_class_name} belonging to batch {curr_batch_name}".format(curr_class_name = curr_class.name,curr_batch_name= curr_batch.name)
         }, status = 200)
 
+@user_passes_test(check_is_faculty,login_url='/login/')
+def view_schedule(request):
+    return render(request,'calendar.html')
+
+
 @api_view(['GET','POST'])
 @csrf_exempt#made some changes with max val pls cross verify
 def show_calendar_plan(request):#weights are in percentage while returning not absolute
@@ -292,96 +299,6 @@ def show_calendar_plan(request):#weights are in percentage while returning not a
     start_date_string = "{year}#{month}#{day}".format(year = start_interval_year,month= start_interval_month,day = start_interval_day)
     data = {'message': 'ok','weight_dict': weight_dict,'start_date_string': start_date_string,'optimal_day': optimal_date_string,'maxi_val': max_val}
     return Response(data=data,status= status.HTTP_200_OK)
-@login_required
-@csrf_exempt
-def all_batch_classes(request,batch_code):
-    try:
-        if request.user.extended_reverse.is_student:
-            curr_batch = Batch.objects.get(batch_code_student = batch_code)
-        else:
-            curr_batch = Batch.objects.get(batch_code_teacher= batch_code)
-    except:
-        return JsonResponse({
-            'is_success': False,
-            'message': "Batch not found"
-            }, status = 400)
-    all_classes = BatchClass.objects.filter(belongs_to_batch= curr_batch)
-    all_classes_list = []
-    for curr_class in all_classes:
-        if curr_class.owner is not None:
-            curr_owner =curr_class.owner.username
-        else:
-            curr_owner = None
-        curr_dict = {
-                    'class_name': curr_class.name,
-                    'owner_username': curr_owner,
-                    'teacher_class_code':curr_class.class_code,
-                    'student_class_code': curr_class.student_class_code
-        }
-        if request.user in curr_class.teachers.all():
-            all_classes_list.append(curr_dict)
-    return JsonResponse(
-        {
-            'is_success': True,
-            'message':'success',
-            'all_classes_list':all_classes_list
-        }
-    )
-@user_passes_test(check_is_faculty,login_url='/login/')
-def add_task_form_handler(request):
-    #print('called')
-    global CALENDAR_START_DATE, CALENDAR_END_DATE
-    if request.method == "POST":
-        batch_code = request.POST['batch_code_hidden']
-        #print(batch_code,'batch code deb')
-        class_code_teacher = request.POST['class_code_hidden']
-        stress_level = int(request.POST['stress_level_task'] )
-        curr_class = BatchClass.objects.get(class_code = class_code_teacher)
-        name_title = request.POST['title']
-        start_time_string = request.POST['start_task_time']
-        content_html_description = request.POST['description_content_hidden']
-        if len(start_time_string) > 0:
-            try:
-                start_datetime_object = datetime.strptime(start_time_string,'%Y/%m/%d %H:%M')
-            except Exception as e:
-                request.session['message'] = "Inavlid task submission date time format"
-                return redirect('main:add_task_page')
-        else:
-            start_datetime_object = current_datetime_aware_object
-        start_datetime_object = make_aware(start_datetime_object, timezone= pytz.timezone('Asia/Kolkata'))
-        end_time_string = request.POST['end_task_time']
-        if len(end_time_string) > 0:
-            try:
-                end_datetime_object = datetime.strptime(end_time_string,'%Y/%m/%d %H:%M')
-            except:
-                request.session['message'] = "Inavlid task submission date time format"
-                return redirect('main:add_task_page')
-        else:
-            end_datetime_object = CALENDAR_END_DATE
-        end_datetime_object = make_aware(end_datetime_object, timezone= pytz.timezone('Asia/Kolkata'))
-
-        new_task = Task(belongs_to_class = curr_class,name = name_title,start_time= start_datetime_object,end_time= end_datetime_object,stress_level = stress_level,description = content_html_description)
-        new_task.save()
-        if request.FILES:
-            files_object = request.FILES.items()
-            for key_of_file_in_input,name_of_file in files_object:
-                print(name_of_file, key_of_file_in_input)
-                new_file_retrieved = request.FILES[key_of_file_in_input]
-                new_file_obj = FileStored(name = name_of_file,stored_file = new_file_retrieved,linked_to = new_task)
-                new_file_obj.save()
-        val =add_task(end_datetime_object,stress_level,batch_code)#adding task to firebase calendar
-        print(val)
-        request.session['message'] = "Your Task has been added. You can add more here now too."
-        return redirect('main:add_task_page')
-    return redirect('add_task_page')
-
-def add_task_page(request):
-    if 'message' in request.session:
-        message = request.session['message']
-        del request.session['message']
-    else:
-        message = None
-    return render(request,'add_task.html',{'error_message': message})
 
 @api_view(['GET','POST'])
 @csrf_exempt
@@ -430,6 +347,7 @@ def get_all_tasks_on_day(request):
     print(json_data,'before return')
     return Response(data = json_data, status= status.HTTP_200_OK)
 
+
 @user_passes_test(check_is_faculty,login_url='/login/')
 @csrf_exempt
 def delete_task(request,task_id):
@@ -454,40 +372,73 @@ def delete_task(request,task_id):
             'message':'Task {name} deleted'.format(name = curr_task.name),
         }, status= 200
     )
-#@user_passes_test(check_is_student,login_url='/login/')
+
 @login_required
-def student_task_submission_page(request,task_id):#3 for submiiting or viewing tasks added. 3authentication_handled
-    curr_task = Task.objects.get(id= task_id)
-    task_class = curr_task.belongs_to_class
-    task_batch = task_class.belongs_to_batch
-    if request.user.extended_reverse.is_student is True and current_datetime_aware_object() < curr_task.start_time:
-        start_time_india = curr_task.end_time.astimezone(timezone('Asia/Kolkata'))
-        curr_message = "Task starts at {time_start}. You are too early.".format(time_start = str(start_time_india))
-        return render(request,'error_message.html',{'message': curr_message})
-    if request.user.extended_reverse.is_student:
-        if request.user not in task_class.third_party_user.all() and request.user not in task_batch.all_users_in_batch.all():
-            curr_message = "You are not a part of the class or batch. Please join the class or batch to submit"
-            return render(request,'error_message.html',{'message': curr_message})
+def add_task_page(request):
+    if 'message' in request.session:
+        message = request.session['message']
+        del request.session['message']
     else:
-        if request.user not in task_class.teachers.all() and request.user not in task_batch.all_users_in_batch.all():
-            curr_message = "You are not a part of the class or batch. Please join the class or batch to submit"
-            return render(request,'error_message.html',{'message': curr_message})           
-    all_task_files = curr_task.tagged_file.all()
-    if 'submit_task_button' in request.POST:
-        new_student_submission = StudentSubmission(belongs_to_user = request.user,for_which_task = curr_task)
-        new_student_submission.save()
+        message = None
+    return render(request,'add_task.html',{'error_message': message})
+
+
+def add_task_view(request,batch_code,year,month,day,weight):
+    my_datetime_object = datetime(year=year,month=month,day = day)
+    add_task(my_datetime_object,weight,batch_code)
+    return JsonResponse({'message': 'ok'})
+
+@user_passes_test(check_is_faculty,login_url='/login/')
+def add_task_form_handler(request):
+    #print('called')
+    global CALENDAR_START_DATE, CALENDAR_END_DATE
+    if request.method == "POST":
+        batch_code = request.POST['batch_code_hidden']
+        #print(batch_code,'batch code deb')
+        class_code_teacher = request.POST['class_code_hidden']
+        stress_level = int(request.POST['stress_level_task'] )
+        curr_class = BatchClass.objects.get(class_code = class_code_teacher)
+        name_title = request.POST['title']
+        start_time_string = request.POST['start_task_time']
+        content_html_description = request.POST['description_content_hidden']
+        if len(start_time_string) > 0:
+            try:
+                start_datetime_object = datetime.strptime(start_time_string,'%Y/%m/%d %H:%M')
+            except Exception as e:
+                request.session['message'] = "Inavlid task submission date time format"
+                return redirect('main:add_task_page')
+        else:
+            start_datetime_object = current_datetime_aware_object
+        start_datetime_object = make_aware(start_datetime_object, timezone= pytz.timezone('Asia/Kolkata'))
+        end_time_string = request.POST['end_task_time']
+        if len(end_time_string) > 0:
+            try:
+                end_datetime_object = datetime.strptime(end_time_string,'%Y/%m/%d %H:%M')
+            except:
+                request.session['message'] = "Inavlid task submission date time format"
+                return redirect('main:add_task_page')
+        else:
+            end_datetime_object = CALENDAR_END_DATE
+        end_datetime_object = make_aware(end_datetime_object, timezone= pytz.timezone('Asia/Kolkata'))
+
+        new_task = Task(belongs_to_class = curr_class,name = name_title,start_time= start_datetime_object,end_time= end_datetime_object,stress_level = stress_level,description = content_html_description)
+        new_task.save()
         if request.FILES:
             files_object = request.FILES.items()
             for key_of_file_in_input,name_of_file in files_object:
                 print(name_of_file, key_of_file_in_input)
                 new_file_retrieved = request.FILES[key_of_file_in_input]
-                new_file_obj = FileStored(name = name_of_file,stored_file = new_file_retrieved,linked_to = new_student_submission)
+                new_file_obj = FileStored(name = name_of_file,stored_file = new_file_retrieved,linked_to = new_task)
                 new_file_obj.save()
-                return render(request,'student_task_submission.html',{'curr_task': curr_task,
-                'error_message':"Task Submitted.You can submit another. Your latest one will be considered.",
-                'all_task_files':all_task_files
-                })
-    return render(request,'student_task_submission.html',{'curr_task': curr_task,'all_task_files':all_task_files})
+        val =add_task(end_datetime_object,stress_level,batch_code)#adding task to firebase calendar
+        print(val)
+        request.session['message'] = "Your Task has been added. You can add more here now too."
+        return redirect('main:add_task_page')
+    return redirect('add_task_page')
+
+@login_required
+def batch_view(request,batch_id):
+    pass
 
 @login_required
 def all_user_batches(request):
@@ -495,40 +446,51 @@ def all_user_batches(request):
     return render(request,'all_user_batches.html',{'all_batches': all_batches})
 
 @login_required
-def all_submissions_for_task(request,task_id,show_all):#4task viewing 4authentication_handled 
-    curr_task = Task.objects.get(id= task_id)
-    all_submissions_for_task = curr_task.task_submissions.all()
-    view_all = True
-    #print(all_submissions_for_task)
-    if request.user.extended_reverse.is_student :
-        filtered_submissions = all_submissions_for_task.filter(belongs_to_user = request.user)
-    else:
-        if request.user not in curr_task.belongs_to_class.teachers.all() and request.user not in curr_task.belongs_to_class.belongs_to_batch.all_users_in_batch.all():
-            return render(request,'error_message.html',{'message': "You are not a part of {class_name} or batch of this class".format(class_name = curr_task.belongs_to_class.name)})
-        filtered_submissions = all_submissions_for_task.order_by('-submission_time')
-        if show_all <= 0:
-            view_all = False
-            curr_filtered_submissions = filtered_submissions
-            filtered_submissions = []
-            user_id_set = set()
-            for curr in curr_filtered_submissions:
-                if curr.belongs_to_user.id not in user_id_set:
-                    user_id_set.add(curr.belongs_to_user.id)
-                    filtered_submissions.append(curr)
-    #print(filtered_submissions)
-    return render(request,'all_task_submissions.html',{'filtered_submissions': filtered_submissions,'curr_task': curr_task,'view_all': view_all})
+def all_batch_classes_table_page(request,batch_id):#viewing all classes in a batch #1authentication_handled
+    curr_batch = Batch.objects.get(id = batch_id)
+    if request.user not in curr_batch.all_users_in_batch.all():
+        return render(request, 'error_message.html', {'message':"You are not a part of the batch. Please contact owner for Batch code and join the batch"})
+    classes_in_curr_batch = curr_batch.all_batch_class.all()
+    all_students = curr_batch.all_users_in_batch.filter(extended_reverse__is_student = True)
+    all_faculties = curr_batch.all_users_in_batch.filter(extended_reverse__is_student = False)
+    return render(request,'all_batch_classes.html',{'curr_batch': curr_batch,'all_students': all_students,'all_faculties': all_faculties,'all_classes': classes_in_curr_batch})
 
 @login_required
-def view_student_submission(request, submission_id):
-    curr_submission = StudentSubmission.objects.get(id = submission_id)
-    temp = "Student {uname} submission to task {task_name}".format(uname = curr_submission.belongs_to_user.username, task_name= curr_submission.for_which_task.name)
-    return HttpResponse(temp)
+@csrf_exempt
+def all_batch_classes(request,batch_code):
+    try:
+        if request.user.extended_reverse.is_student:
+            curr_batch = Batch.objects.get(batch_code_student = batch_code)
+        else:
+            curr_batch = Batch.objects.get(batch_code_teacher= batch_code)
+    except:
+        return JsonResponse({
+            'is_success': False,
+            'message': "Batch not found"
+            }, status = 400)
+    all_classes = BatchClass.objects.filter(belongs_to_batch= curr_batch)
+    all_classes_list = []
+    for curr_class in all_classes:
+        if curr_class.owner is not None:
+            curr_owner =curr_class.owner.username
+        else:
+            curr_owner = None
+        curr_dict = {
+                    'class_name': curr_class.name,
+                    'owner_username': curr_owner,
+                    'teacher_class_code':curr_class.class_code,
+                    'student_class_code': curr_class.student_class_code
+        }
+        if request.user in curr_class.teachers.all():
+            all_classes_list.append(curr_dict)
+    return JsonResponse(
+        {
+            'is_success': True,
+            'message':'success',
+            'all_classes_list':all_classes_list
+        }
+    )
 
-@user_passes_test(check_is_faculty,login_url='/login/')
-def all_classes_teacher(request):
-    all_classes = request.user.classes_teaching.all()
-    #print(all_classes)
-    return render(request,'all_faculty_classes.html',{'all_faculty_classes':all_classes})
 @login_required
 def all_class_tasks(request,class_id):#2all tasks in class 2authentication_handled
     curr_class = BatchClass.objects.get(id= class_id)
@@ -553,21 +515,26 @@ def all_class_tasks(request,class_id):#2all tasks in class 2authentication_handl
                     'all_tasks': all_tasks,
                     'curr_class': curr_class}
                 )
-@login_required
-def all_batch_classes_table_page(request,batch_id):#viewing all classes in a batch #1authentication_handled
-    curr_batch = Batch.objects.get(id = batch_id)
-    if request.user not in curr_batch.all_users_in_batch.all():
-        return render(request, 'error_message.html', {'message':"You are not a part of the batch. Please contact owner for Batch code and join the batch"})
-    classes_in_curr_batch = curr_batch.all_batch_class.all()
-    all_students = curr_batch.all_users_in_batch.filter(extended_reverse__is_student = True)
-    all_faculties = curr_batch.all_users_in_batch.filter(extended_reverse__is_student = False)
-    return render(request,'all_batch_classes.html',{'curr_batch': curr_batch,'all_students': all_students,'all_faculties': all_faculties,'all_classes': classes_in_curr_batch})
+
+
+@user_passes_test(check_is_faculty,login_url='/login/')
+def all_classes_teacher(request):
+    all_classes = request.user.classes_teaching.all()
+    #print(all_classes)
+    return render(request,'all_faculty_classes.html',{'all_faculty_classes':all_classes})
+
 
 @user_passes_test(check_is_student,login_url='/login/')
 def all_anonymous_classes(request):#viewing all classes in a batch #1authentication_handled
     curr_batch = {'name':"Anonymous Classes"}
     all_anonymous_classes_queryset = request.user.anonymous_classes.all()
     return render(request,'all_batch_classes.html',{'curr_batch': curr_batch,'all_classes': all_anonymous_classes_queryset})
+
+@login_required
+def view_student_submission(request, submission_id):
+    curr_submission = StudentSubmission.objects.get(id = submission_id)
+    temp = "Student {uname} submission to task {task_name}".format(uname = curr_submission.belongs_to_user.username, task_name= curr_submission.for_which_task.name)
+    return HttpResponse(temp)
 
 @login_required
 def grade_view_submitted_task(request,submission_id):
@@ -603,29 +570,73 @@ def grade_view_submitted_task(request,submission_id):
         'view_only': view_only,
         'error_message': message
         })
+
+
+
+@login_required
+def all_submissions_for_task(request,task_id,show_all):#4task viewing 4authentication_handled 
+    curr_task = Task.objects.get(id= task_id)
+    all_submissions_for_task = curr_task.task_submissions.all()
+    view_all = True
+    #print(all_submissions_for_task)
+    if request.user.extended_reverse.is_student :
+        filtered_submissions = all_submissions_for_task.filter(belongs_to_user = request.user)
+    else:
+        if request.user not in curr_task.belongs_to_class.teachers.all() and request.user not in curr_task.belongs_to_class.belongs_to_batch.all_users_in_batch.all():
+            return render(request,'error_message.html',{'message': "You are not a part of {class_name} or batch of this class".format(class_name = curr_task.belongs_to_class.name)})
+        filtered_submissions = all_submissions_for_task.order_by('-submission_time')
+        if show_all <= 0:
+            view_all = False
+            curr_filtered_submissions = filtered_submissions
+            filtered_submissions = []
+            user_id_set = set()
+            for curr in curr_filtered_submissions:
+                if curr.belongs_to_user.id not in user_id_set:
+                    user_id_set.add(curr.belongs_to_user.id)
+                    filtered_submissions.append(curr)
+    #print(filtered_submissions)
+    return render(request,'all_task_submissions.html',{'filtered_submissions': filtered_submissions,'curr_task': curr_task,'view_all': view_all})
+
+#@user_passes_test(check_is_student,login_url='/login/')
+@login_required
+def student_task_submission_page(request,task_id):#3 for submiiting or viewing tasks added. 3authentication_handled
+    curr_task = Task.objects.get(id= task_id)
+    task_class = curr_task.belongs_to_class
+    task_batch = task_class.belongs_to_batch
+    if request.user.extended_reverse.is_student is True and current_datetime_aware_object() < curr_task.start_time:
+        start_time_india = curr_task.end_time.astimezone(timezone('Asia/Kolkata'))
+        curr_message = "Task starts at {time_start}. You are too early.".format(time_start = str(start_time_india))
+        return render(request,'error_message.html',{'message': curr_message})
+    if request.user.extended_reverse.is_student:
+        if request.user not in task_class.third_party_user.all() and request.user not in task_batch.all_users_in_batch.all():
+            curr_message = "You are not a part of the class or batch. Please join the class or batch to submit"
+            return render(request,'error_message.html',{'message': curr_message})
+    else:
+        if request.user not in task_class.teachers.all() and request.user not in task_batch.all_users_in_batch.all():
+            curr_message = "You are not a part of the class or batch. Please join the class or batch to submit"
+            return render(request,'error_message.html',{'message': curr_message})           
+    all_task_files = curr_task.tagged_file.all()
+    if 'submit_task_button' in request.POST:
+        new_student_submission = StudentSubmission(belongs_to_user = request.user,for_which_task = curr_task)
+        new_student_submission.save()
+        if request.FILES:
+            files_object = request.FILES.items()
+            for key_of_file_in_input,name_of_file in files_object:
+                print(name_of_file, key_of_file_in_input)
+                new_file_retrieved = request.FILES[key_of_file_in_input]
+                new_file_obj = FileStored(name = name_of_file,stored_file = new_file_retrieved,linked_to = new_student_submission)
+                new_file_obj.save()
+                return render(request,'student_task_submission.html',{'curr_task': curr_task,
+                'error_message':"Task Submitted.You can submit another. Your latest one will be considered.",
+                'all_task_files':all_task_files
+                })
+    return render(request,'student_task_submission.html',{'curr_task': curr_task,'all_task_files':all_task_files})
+
+
 @login_required
 def user_profile_page(request,user_id):
     curr_user = User.objects.get(id = user_id)
     return render(request,'profile_page.html',{'curr_user': curr_user})
 
-@login_required
-def batch_view(request,batch_id):
-    pass
-
-def add_task_view(request,batch_code,year,month,day,weight):
-    my_datetime_object = datetime(year=year,month=month,day = day)
-    add_task(my_datetime_object,weight,batch_code)
-    return JsonResponse({'message': 'ok'})
-
 def main_home(request):
     return render(request,'main_home_page.html')
-
-@user_passes_test(check_is_faculty,login_url='/login/')
-def view_schedule(request):
-    return render(request,'calendar.html')
-def test(request):
-    return render(request,'profile_page.html')
-def test2(request):
-    return render(request,'register.html')
-
-# Create your views here.
