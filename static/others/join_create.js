@@ -20,9 +20,6 @@ function join_batch(){
     let button = document.getElementById('join_batch_button')
     button.disabled = true
     let data_list = document.getElementById('list_batch_name')
-    data_list.innerHTML += `
-            <option data-value="${batch_code}" value="${"TestName"}">Batch Code:${batch_code}</option>
-            `
     fetch(url,{
         method:'POST',
         credentials: 'same-origin',

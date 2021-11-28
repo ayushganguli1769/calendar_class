@@ -10,8 +10,8 @@
   <meta content="" name="keywords">
     {% load static %}
   <!-- Favicons -->
-  <link href="{% static 'bootstrap_template/assets/img/favicon.png' %}" rel="icon">
-  <link href="{% static 'bootstrap_template/assets/img/favicon.png' %}" rel="apple-touch-icon">
+  <link href="{% static 'others/images/favicon/bulb32.png' %}" rel="icon">
+  <link href="{% static 'others/images/favicon/bulb16.png' %}" rel="apple-touch-icon">
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,600,600i,700,700i" rel="stylesheet">
@@ -32,7 +32,6 @@
 </head>
 
 <body>
-
   <!-- ======= Header ======= -->
   <header id="header" class="fixed-top d-flex align-items-center">
     <div class="container d-flex align-items-center justify-content-between">
@@ -52,14 +51,17 @@
               <li><a class="nav-link scrollto" href="{% url 'main:all_user_batches' %}">Submit Task</a></li>
               <li><a class="nav-link scrollto" href="{% url 'main:join_class_batch_student' %}">Join Batch/Class</a></li>
               <li><a class="nav-link scrollto" href="{% url 'main:logout' %}">Logout</a></li>
-              <li><a class="getstarted scrollto" href="#">Welcome {{request.user.username|truncatechars:32}}</a></li>
+              <li><a class="getstarted scrollto" href="{% url 'main:user_profile_page' user_id=request.user.id %}">Welcome {{request.user.username|truncatechars:32}}</a></li>
             </ul>  
           {% else %}
             <ul>
               <li><a class="nav-link scrollto" href="/">Main Page</a></li>
               <li><a class="nav-link " href="{% url 'main:faculty_home' %}">Home</a></li>
               <li><a class="nav-link scrollto" href="{% url 'main:all_classes_teacher' %}">View Submissions</a></li>
+              <li><a class="nav-link scrollto" href="{% url 'main:view_schedule' %}">Plan Task</a></li>
+              <li><a class="nav-link scrollto" href="{% url 'main:add_task_page' %}">Create Task</a></li>
               <li><a class="nav-link scrollto" href="{% url 'main:join_create' %}">Join/Create</a></li>
+              <li><a class="nav-link scrollto" href="{% url 'main:all_user_batches' %}">All Batches</a></li>
               <li><a class="nav-link scrollto" href="{% url 'main:logout' %}">Logout</a></li>
               <li><a class="getstarted scrollto" href="#">Welcome {{request.user.username|truncatechars:32}}</a></li>
             </ul>                    
@@ -96,7 +98,13 @@
           <h1>Education Revolutionized with Eduvation </h1>
           <h2>Eduvation is an online education forum. This forum helps in task management and task planning. </h2>
           <div>
-            <a href="#about" class="btn-get-started scrollto">Get Started</a>
+            {% if user.is_authenticated == False %}
+            <a href="{% url 'main:login' %}" class="btn-get-started ">Get Started</a>
+            {% elif  request.user.extended_reverse.is_student %}
+            <a href="{% url 'main:student_home' %}" class="btn-get-started">Get Started</a>
+            {% else %}
+            <a href="{% url 'main:faculty_home' %}" class="btn-get-started">Get Started</a>
+            {% endif %}
           </div>
         </div>
         <div class="col-lg-6 order-1 order-lg-2 hero-img">

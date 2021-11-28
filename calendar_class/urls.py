@@ -17,8 +17,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-
+from main.views import main_home
 urlpatterns = [
+    path('', main_home,name='main_home_page'),
     path('',include('main.urls')),
     path('admin/', admin.site.urls),
 ]

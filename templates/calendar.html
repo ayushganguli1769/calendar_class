@@ -147,6 +147,13 @@
             </div>
             
         </div>
+        <div class="row">
+            <div class="col-7" id="alert_div_optimal_date_string">
+                <!--optimal date here-->
+            </div>
+        </div>
+  
+
         <div id="accordion">
             <div class="card col-8 mt-4">
             <div class="card-header text-center" id="heading-2">
@@ -164,7 +171,7 @@
                     <label for="days_before">Number of days before considered</label>
                     </div>
                     <div class="col-2 ">
-                    <input type="number" class="form-control" id="days_before" value="3">
+                    <input type="number" class="form-control" id="days_before" value="2">
                     </div>
                 </div>
                 <div class="row mt-2">
@@ -172,7 +179,7 @@
                     <label for="days_after">Number of days after considered</label>
                     </div>
                     <div class="col-2 ">
-                    <input type="number" class="form-control" id="days_after" value="7">
+                    <input type="number" class="form-control" id="days_after" value="3">
                     </div>
                 </div>
                 </div>
@@ -237,11 +244,11 @@
     <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js"></script>
     <script>
         window.onload = create_calendar_input()
-        window.onload = ()=>{
+
             localStorage.clear()
             localStorage.setItem( 'calendar_dict',JSON.stringify( {}  ) )
             localStorage.setItem('max_weight', '0' )
-        }
+        
         function create_calendar_input(){
             $(".date_picker_class").each(
                 function(){

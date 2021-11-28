@@ -4,7 +4,7 @@ from django.http import HttpResponse,Http404, JsonResponse
 from django.contrib.auth.models import User, auth
 from django.contrib.auth.decorators import login_required
 from .models import ExtendedUser, StudentSubmission
-from datetime import datetime, timezone
+from datetime import datetime, timezone,date
 import pytz
 from pytz import timezone
 from .models import Batch, BatchClass, Task, FileStored
@@ -40,12 +40,19 @@ def generate_random_string(length):
     return "".join(arr)
 def register(request):
     if 'register' in request.POST:
+        #try:
         username = request.POST['username']
         password1 = request.POST['password1']
         password2 = request.POST['password2']
         date_of_birth = request.POST['date_of_birth']#month day year
         type_of_user = request.POST['type_of_user']
         email = request.POST['email']
+        first_name = request.POST['first_name']
+        last_name = request.POST['last_name']
+        print(request.FILES)
+        profile_photo = request.FILES['profile_photo']
+        #except Exception as e:
+        #    return render(request,'register.html',{'error_message':"Please fill all form parameters"})
         try:
             (month,day,year) = map(int,date_of_birth.strip().split("/"))
         except Exception as e:
@@ -57,11 +64,12 @@ def register(request):
                 print("already Exists")
                 return render(request,'register.html',{'error_message':"Username already taken"})
             else:
-                user= User.objects.create_user(username = username, password = password1,email = email)
+                user= User.objects.create_user(username = username, password = password1,email = email, first_name= first_name, last_name = last_name)
                 user.save()
                 naive_dob = datetime(year= year,month=month,day=day)#,timezone= pytz.timezone('Asia/Kolkata')
                 aware_dob = make_aware(naive_dob, timezone= pytz.timezone('Asia/Kolkata'))
                 user.extended_reverse.dob = aware_dob
+                user.extended_reverse.image = profile_photo
                 if type_of_user == "faculty":
                     user.extended_reverse.is_student = False
                 user.extended_reverse.save()
@@ -150,6 +158,7 @@ def join_batch(request,batch_code):
     curr_batch.save()
     return JsonResponse({
         'is_success': True,
+        'batch_name':curr_batch.name,
         'message': "Successfully joined batch {batch_name}".format(batch_name = curr_batch.name)
     })
 
@@ -274,8 +283,14 @@ def show_calendar_plan(request):#weights are in percentage while returning not a
         if weight_dict[curr_date_string] < mini:
             mini = weight_dict[curr_date_string]
             mini_date_string = curr_date_string
+    try:
+        optimal_day_arr = mini_date_string.split("#")
+        optimal_date = date(year = int(optimal_day_arr[0]), month = int(optimal_day_arr[1]) , day = int(optimal_day_arr[2]) )
+        optimal_date_string = optimal_date.strftime('%A %d %B %Y')
+    except:
+        optimal_date_string = ""
     start_date_string = "{year}#{month}#{day}".format(year = start_interval_year,month= start_interval_month,day = start_interval_day)
-    data = {'message': 'ok','weight_dict': weight_dict,'start_date_string': start_date_string,'optimal_day': mini_date_string,'maxi_val': max_val}
+    data = {'message': 'ok','weight_dict': weight_dict,'start_date_string': start_date_string,'optimal_day': optimal_date_string,'maxi_val': max_val}
     return Response(data=data,status= status.HTTP_200_OK)
 @login_required
 @csrf_exempt
@@ -445,6 +460,10 @@ def student_task_submission_page(request,task_id):#3 for submiiting or viewing t
     curr_task = Task.objects.get(id= task_id)
     task_class = curr_task.belongs_to_class
     task_batch = task_class.belongs_to_batch
+    if request.user.extended_reverse.is_student is True and current_datetime_aware_object() < curr_task.start_time:
+        start_time_india = curr_task.end_time.astimezone(timezone('Asia/Kolkata'))
+        curr_message = "Task starts at {time_start}. You are too early.".format(time_start = str(start_time_india))
+        return render(request,'error_message.html',{'message': curr_message})
     if request.user.extended_reverse.is_student:
         if request.user not in task_class.third_party_user.all() and request.user not in task_batch.all_users_in_batch.all():
             curr_message = "You are not a part of the class or batch. Please join the class or batch to submit"
@@ -587,7 +606,7 @@ def grade_view_submitted_task(request,submission_id):
 @login_required
 def user_profile_page(request,user_id):
     curr_user = User.objects.get(id = user_id)
-    return HttpResponse("{uname} profile".format(uname =curr_user.username))
+    return render(request,'profile_page.html',{'curr_user': curr_user})
 
 @login_required
 def batch_view(request,batch_id):
@@ -597,11 +616,15 @@ def add_task_view(request,batch_code,year,month,day,weight):
     my_datetime_object = datetime(year=year,month=month,day = day)
     add_task(my_datetime_object,weight,batch_code)
     return JsonResponse({'message': 'ok'})
+
+def main_home(request):
+    return render(request,'main_home_page.html')
+
 @user_passes_test(check_is_faculty,login_url='/login/')
 def view_schedule(request):
     return render(request,'calendar.html')
 def test(request):
-    return render(request,'test.html')
+    return render(request,'profile_page.html')
 def test2(request):
     return render(request,'register.html')
 

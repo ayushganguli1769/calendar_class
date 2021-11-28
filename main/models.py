@@ -9,6 +9,7 @@ import pytz
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now as current_datetime_aware_object
+from django.core.validators import FileExtensionValidator
 
 from django.conf import settings
 from firebase_admin import db
@@ -22,6 +23,7 @@ class ExtendedUser(models.Model):
     linked_user = models.OneToOneField(User, on_delete=models.CASCADE,related_name='extended_reverse',)
     dob = models.DateField(null= True)#date of birth
     is_student = models.BooleanField(default=True)#true for student false for faculty
+    image = models.FileField(null= True, validators=[FileExtensionValidator(allowed_extensions=['jpg','jpeg','png','svg','webp'])])
     def __str__(self):
         return self.linked_user.username + " Extended User"
 
@@ -42,6 +44,7 @@ class BatchClass(models.Model):
     class_code = models.CharField(max_length=200,null=True)#meant for teachers
     student_class_code = models.CharField(max_length=200,null=True)
     name = models.CharField(max_length=500)
+
     def __str__(self):
         return self.name + " belongs to " + self.belongs_to_batch.name
 

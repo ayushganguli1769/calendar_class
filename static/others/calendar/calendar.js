@@ -14,7 +14,7 @@ function get_colour_codes(percentage){//-> [backGroundColor, borderColor]
         ['#FFFF66',black],//lightyellow3
         ['#FFFF00',black],//yellow
         ['#f4ca16',black],//Jonquil
-        ['F9A602',black],//gold
+        ['#F9A602',black],//gold
         ['#FFA500',black],//orange
         ['#FF8C00',black],//darkorange
         ['#FF7F50',white],//coral
@@ -227,6 +227,7 @@ function showCalendar(month, year) {
                 let curr_date_string = `${String(year)}#${String(month+1)}#${String(date)}`
                 if (curr_date_string in calendar_weight_dict){
                     style_arr = get_colour_codes(calendar_weight_dict[curr_date_string])
+                    console.log(curr_date_string,style_arr)
                     curr_bg_color = style_arr[0]
                     curr_font_color = style_arr[1]
                     cell.style.background = curr_bg_color
@@ -265,6 +266,7 @@ function my_show_calendar_plan(curr_button){
         let previous_days = document.getElementById('days_before').value
         let next_days = document.getElementById('days_after').value
         let curr_user_id = document.getElementById('user_id_hidden').value
+        let alert_div = document.getElementById('alert_div_optimal_date_string')
         /*
         //hardcoding for now debug
         let batch_code = 'MYEHAOKDJG'
@@ -304,13 +306,23 @@ function my_show_calendar_plan(curr_button){
             response => response.json()
         ).then(
             data =>{
+                alert_div.innerHTML = `
+                <div class="alert alert-primary d-flex align-items-center mt-5 mb-2" role="alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" viewBox="0 0 16 16" role="img" aria-label="Warning:">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    <div>
+                        The optimal date is ${data['optimal_day']}
+                    </div>
+                </div>
+                `
                 curr_button.disabled = false
                 //console.log(data)
                 let calendar_weight_dict = JSON.stringify(data['weight_dict'])
                 localStorage.setItem( 'calendar_dict', calendar_weight_dict)
                 localStorage.setItem('max_weight', data['maxi_val'] )
                 let optimal_date = data['optimal_day']
-                console.log("the optimal date is ",optimal_date)
+                //console.log("the optimal date is ",optimal_date)
                 currentMonth = parseInt(start_interval_month) -1
                 currentYear = parseInt(start_interval_year)
                 showCalendar(start_interval_month-1,start_interval_year)
