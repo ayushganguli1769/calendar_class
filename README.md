@@ -29,6 +29,23 @@ Teachers aren't aware schedule of other classes. Often assignment/task submissio
 I have helped teachers distribute load using a calendar based interactive ui.
 It considers stress from same day, previous days and next days for a particular day. It helps faculties decide the submission date by task stress management
 
+## Tech Stacks Used
+
+<table>
+<tr>
+<th> Backend</th>
+<td>  Python Django </td>
+</tr>
+<tr>
+<th> Frontend</th>
+<td> JavaScript(fetch api), Jquery,Bootstrap 5, CSS, HTML </td>
+</tr>
+ <tr>
+<th> Backend</th>
+<td> PostgreSQl(sqlite locally), Firebase </td>
+</tr>
+</table>
+
 ## Feature List
 
 <table>
