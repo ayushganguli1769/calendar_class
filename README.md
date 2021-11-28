@@ -14,6 +14,10 @@ This education forum allows teachers to upload tasks,assignemnts and students to
 </tr>
 </table>
 
+## How to test the live url?
+
+You can login using the faculty username it_faculty4 and password 1234. For testing the student model use username ayushganguli and password 1234. Previously uploaded media files during development won't work for now. While uploading media files please use small txt files.
+
 ## Problems it Solves:
 
 ### Respeated Need for Class Codes
@@ -86,7 +90,7 @@ Students can submit their work as multiple files.
 ![image](https://user-images.githubusercontent.com/53971272/143778993-481a990f-0d51-47d3-811f-f054e49eee63.png)
 
 ### Interactive Calendar Based Task Planner
-![image](https://user-images.githubusercontent.com/53971272/143779022-cb642ee9-45f7-41a1-845d-992c3aca2a09.png)
+![image](https://user-images.githubusercontent.com/53971272/143780400-b033e083-e453-45a6-850a-f3e0fe40232c.png)
 
 ### Task Creator
 ![image](https://user-images.githubusercontent.com/53971272/143779059-2910b2ae-8194-4536-915d-b2d6fe7d7d29.png)
