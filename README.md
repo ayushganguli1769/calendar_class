@@ -123,6 +123,8 @@ Students can submit their work as multiple files.
   git clone https://github.com/ayushganguli1769/calendar_class.git
   cd calendar_class
   pip install -r requirements.txt
+  python manage.py makemigrations
+  python manage.py migrate
   python manage.py runserver
  ```
 
