@@ -67,13 +67,13 @@ This feature is for faculties only. If faculties want to choose deadline for tas
 we consider stress due to tasks on same day, days preceding it and days after it as specified. It generates a coloured heat map with red meaning not a good day and green meaning good day.Optimal 
 day is also calculated.
 </td>
+</tr>
 <tr>
 <th> Create Tasks</th>
 <td>
 Fully built in editor to create tasks for a class. Multiple files can be uploaded. Teachers of a class can create task.
 </td>
 </tr>
-<tr>
 <tr>
 <th> View Tasks</th>
 <td> Teachers and students can view tasks created </td>
