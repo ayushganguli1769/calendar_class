@@ -16,7 +16,7 @@ This education forum allows teachers to upload tasks,assignemnts and students to
 
 ## How to test the live url?
 
-You can login using the faculty username it_faculty4 and password 1234. For testing the student model use username ayushganguli and password 1234. Previously uploaded media files during development won't work for now. While uploading media files please use small txt files.
+You can login using the faculty username cse_faculty1 and password 1234. For testing the student model use username cse_student1 and password 1234. Previously uploaded media files during development won't work for now. While uploading media files please use small txt files.
 
 ## Problems it Solves:
 
