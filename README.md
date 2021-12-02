@@ -41,7 +41,7 @@ It considers stress from same day, previous days and next days for a particular 
 <td> JavaScript(fetch api), Jquery,Bootstrap 5, CSS, HTML </td>
 </tr>
  <tr>
-<th> Backend</th>
+<th> Database</th>
 <td> PostgreSQl(sqlite locally), Firebase </td>
 </tr>
 </table>
